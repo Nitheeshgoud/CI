@@ -1,3 +1,3 @@
 #!/bin/bash
-cd /home/ubuntu/app
+# Stop the Node.js application
 pkill -f "node server.js"
