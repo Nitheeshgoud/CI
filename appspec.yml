@@ -13,9 +13,6 @@ hooks:
       timeout: 300
       runas: ubuntu
   AfterInstall:
-    - location: scripts/unzip_app.sh  # Add this hook to unzip the app.zip file
-      timeout: 300
-      runas: ubuntu
     - location: scripts/start_server.sh
       timeout: 300
       runas: ubuntu
