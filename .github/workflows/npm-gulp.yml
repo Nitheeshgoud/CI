@@ -30,20 +30,21 @@ jobs:
       run: |
         npm run build  # Ensure this script exists in package.json
 
+    - name: Create ZIP file
+      run: |
+        zip -r app.zip .  # Create a ZIP file of the entire project
+
     - name: Upload artifacts
       uses: actions/upload-artifact@v4
       with:
         name: build
-        path: .  # Upload the entire project directory
+        path: app.zip 
 
   deploy:
     needs: build
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
     - name: Download build artifacts
       uses: actions/download-artifact@v4
       with:
@@ -55,15 +56,15 @@ jobs:
       with:
         aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws-region: ap-south-1  # Ensure this matches your AWS region
+        aws-region: ap-south-1  
 
-    - name: Upload to S3
+    - name: Upload ZIP to S3
       run: |
-        aws s3 cp . s3://java-space/build --recursive
+        aws s3 cp app.zip s3://java-space/build/app.zip  # Upload the ZIP file to S3
 
     - name: Deploy to AWS CodeDeploy
       run: |
         aws deploy create-deployment \
           --application-name java-application \
           --deployment-group-name java-application-group \
-          --s3-location bucket=java-space,bundleType=zip,key=build
+          --s3-location bucket=java-space,bundleType=zip,key=build/app.zip
