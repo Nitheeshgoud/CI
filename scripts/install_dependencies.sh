@@ -1,4 +1,4 @@
 #!/bin/bash
 # Install Node.js dependencies
-cd /var/www/html
+cd /home/ubuntu/app
 npm install
