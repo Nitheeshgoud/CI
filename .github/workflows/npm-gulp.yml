@@ -28,11 +28,15 @@ jobs:
 
     - name: Build
       run: |
-        npm run build  # Ensure this script exists in package.json
+        npm run build  # Remove this if not needed
 
     - name: Create ZIP file
       run: |
-        zip -r app.zip .  # Create a ZIP file of the entire project
+        zip -r app.zip . -x "node_modules/*"  # Exclude node_modules to reduce size
+
+    - name: Verify ZIP file
+      run: |
+        unzip -l app.zip
 
     - name: Upload artifacts
       uses: actions/upload-artifact@v4
