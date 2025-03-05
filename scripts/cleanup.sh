@@ -1,10 +1,15 @@
 #!/bin/bash
-# Clean up the target directory
-TARGET_DIR="/home/ubuntu/app"
-if [ -d "$TARGET_DIR" ]; then
-  echo "Cleaning up $TARGET_DIR..."
-  rm -rf "$TARGET_DIR"/*
-else
-  echo "Target directory $TARGET_DIR does not exist."
-  exit 1
-fi
+set -e  # Exit on error
+
+echo "Cleaning up /home/ubuntu/app..."
+
+# Change ownership to ubuntu user (if files were created by root)
+sudo chown -R ubuntu:ubuntu /home/ubuntu/app
+
+# Grant full permissions to the user
+sudo chmod -R u+rwx /home/ubuntu/app
+
+# Remove files forcefully
+rm -rf /home/ubuntu/app/*
+
+echo "Cleanup complete."
