@@ -5,6 +5,9 @@ files:
     destination: /home/ubuntu/app
 hooks:
   BeforeInstall:
+    - location: scripts/cleanup.sh
+      timeout: 300
+      runas: ubuntu
     - location: scripts/stop_server.sh
       timeout: 300
       runas: ubuntu
