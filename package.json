@@ -1,17 +1,15 @@
 {
-  "name": "bloggin-site",
+  "name": "blogging-site",
   "version": "1.0.0",
-  "description": "",
+  "description": "A simple blogging platform",
   "main": "server.js",
   "scripts": {
-    "start": "nodemon server.js",
-    "build": "echo 'No build step required'"
+    "start": "node server.js"
   },
-  "author": "",
+  "author": "Your Name",
   "license": "ISC",
   "dependencies": {
-    "express-fileupload": "^1.2.1",
-    "express": "^4.17.1", 
-    "nodemon": "^2.0.12"
+    "express": "^4.17.1",
+    "express-fileupload": "^1.2.1"
   }
 }
