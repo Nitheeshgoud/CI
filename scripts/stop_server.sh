@@ -1,4 +1,4 @@
 #!/bin/bash
-# Stop the Node.js application
-cd /home/ubuntu/app
-pkill -f "node server.js"
+
+echo "Stopping the Node.js application..."
+pkill -f "node server.js" && echo "Application stopped." || echo "No running application found."
