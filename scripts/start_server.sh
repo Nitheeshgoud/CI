@@ -1,8 +1,6 @@
 #!/bin/bash
-
-echo "Starting the Node.js application..."
-cd /home/ubuntu/app || { echo "Failed to navigate to /home/ubuntu/app"; exit 1; }
-
-nohup node server.js > /dev/null 2>&1 &
-
-echo "Application started successfully."
+cd /var/www/app
+echo "Starting application..."
+pm2 stop all || true
+pm2 start server.js --name node-app
+pm2 save
