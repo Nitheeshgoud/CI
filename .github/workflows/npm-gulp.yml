@@ -1,4 +1,4 @@
-name: NodeJS with Gulp
+name: Deploy Node.js App with AWS CodeDeploy
 
 on:
   push:
@@ -15,60 +15,55 @@ jobs:
         node-version: [22.x]
 
     steps:
-    - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-    - name: Use Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v4
-      with:
-        node-version: ${{ matrix.node-version }}
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
 
-    - name: Install dependencies
-      run: |
-        npm install
+      - name: Install dependencies
+        run: npm install
 
-    - name: Build
-      run: |
-        npm run build  # Remove this if not needed
+      - name: Create ZIP file
+        run: |
+          zip -r app.zip . -x "node_modules/*" ".git/*" ".github/*" "*.md" "scripts/*.sh"
+      
+      - name: Verify ZIP file
+        run: unzip -l app.zip
 
-    - name: Create ZIP file
-      run: |
-        zip -r app.zip . -x "node_modules/*"  # Exclude node_modules to reduce size
-
-    - name: Verify ZIP file
-      run: |
-        unzip -l app.zip
-
-    - name: Upload artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: build
-        path: app.zip 
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-artifact
+          path: app.zip
 
   deploy:
     needs: build
     runs-on: ubuntu-latest
 
     steps:
-    - name: Download build artifacts
-      uses: actions/download-artifact@v4
-      with:
-        name: build
-        path: .
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: app-artifact
+          path: .
 
-    - name: Configure AWS credentials
-      uses: aws-actions/configure-aws-credentials@v4
-      with:
-        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws-region: ap-south-1  
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ap-south-1  
 
-    - name: Upload ZIP to S3
-      run: |
-        aws s3 cp app.zip s3://java-space/build/app.zip  # Upload the ZIP file to S3
+      - name: Upload ZIP to S3
+        run: aws s3 cp app.zip s3://java-space/build/app.zip
 
-    - name: Deploy to AWS CodeDeploy
-      run: |
-        aws deploy create-deployment \
-          --application-name java-application \
-          --deployment-group-name java-application-group \
-          --s3-location bucket=java-space,bundleType=zip,key=build/app.zip
+      - name: Deploy to AWS CodeDeploy
+        run: |
+          aws deploy create-deployment \
+            --application-name java-application \
+            --deployment-group-name java-application-group \
+            --revision '{"revisionType": "S3", "s3Location": {"bucket": "java-space", "key": "build/app.zip", "bundleType": "zip"}}' \
+            --region ap-south-1
