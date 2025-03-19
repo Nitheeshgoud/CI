@@ -1,3 +1,3 @@
 #!/bin/bash
-cd /home/ubuntu/java-application
+cd /home/ubuntu/app
 npm install
