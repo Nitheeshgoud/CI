@@ -1,3 +1,3 @@
 #!/bin/bash
-cd /home/ec2-user/java-application
-pm2 stop app.js
+cd /home/ubuntu/java-application
+pm2 stop app.js || echo "No running application to stop."
