@@ -1,4 +1,3 @@
 #!/bin/bash
-cd /var/www/app
-echo "Installing dependencies..."
+cd /home/ec2-user/java-application
 npm install
