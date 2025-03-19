@@ -1,3 +1,3 @@
 #!/bin/bash
-echo "Stopping application..."
-pm2 stop all || true
+cd /home/ec2-user/java-application
+pm2 stop app.js
