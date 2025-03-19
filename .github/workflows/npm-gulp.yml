@@ -6,6 +6,10 @@ on:
   pull_request:
     branches: [ "master" ]
 
+permissions:
+  id-token: write  # Required for OIDC authentication
+  contents: read   # Required to read repository contents
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -37,15 +41,11 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: arn:aws:iam::120569639058:role/GitHubActionsDeployRole
-          aws-region: ap-south-1
+          role-session-name: GitHubActions
+          aws-region: ap-south-1  
 
       - name: Upload ZIP to S3
         run: aws s3 cp app.zip s3://java-space/build/app.zip
-
-      - name: Save S3 location for deployment
-        id: s3-location
-        run: |
-          echo "S3_LOCATION=java-space/build/app.zip" >> $GITHUB_ENV
 
   deploy:
     runs-on: ubuntu-latest
@@ -56,7 +56,8 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: arn:aws:iam::120569639058:role/GitHubActionsDeployRole
-          aws-region: ap-south-1
+          role-session-name: GitHubActions
+          aws-region: ap-south-1  
 
       - name: Deploy Application using AWS CodeDeploy
         run: |
