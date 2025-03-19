@@ -3,6 +3,7 @@ os: linux
 files:
   - source: /
     destination: /home/ubuntu/app
+    overwrite: true  # ✅ Allow overwriting existing files
 hooks:
   ApplicationStop:
     - location: scripts/stop_server.sh
