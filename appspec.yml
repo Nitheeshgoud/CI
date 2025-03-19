@@ -3,10 +3,15 @@ os: linux
 files:
   - source: /
     destination: /home/ubuntu/app
-    overwrite: true  # ✅ Allow overwriting existing files
+    overwrite: true  # ✅ Ensure files get overwritten
+
 hooks:
   ApplicationStop:
     - location: scripts/stop_server.sh
+      timeout: 300
+      runas: ubuntu
+  BeforeInstall:
+    - location: scripts/clean_old_files.sh  # ✅ Add cleanup script before install
       timeout: 300
       runas: ubuntu
   AfterInstall:
