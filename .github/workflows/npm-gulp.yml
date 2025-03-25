@@ -1,52 +1,79 @@
-name: Build & Deploy to AWS
+name: Build, Package & Deploy
 
 on:
   push:
     branches: [ "master" ]
 
 permissions:
-  id-token: write   # Required for OIDC
-  contents: read    # Required to checkout code
+  id-token: write
+  contents: read
 
 jobs:
-  deploy:
+  build-deploy:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Checkout code
-      - name: Checkout
+      # ----------------------------------
+      # 1. SETUP & INSTALLATION
+      # ----------------------------------
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      # 2. Configure AWS credentials via OIDC
-      - name: Configure AWS Credentials
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+
+      # ----------------------------------
+      # 2. BUILD PROCESS
+      # ----------------------------------
+      - name: Install dependencies
+        run: |
+          npm ci --production
+          npm cache clean --force
+        env:
+          CI: true
+
+      - name: Run tests
+        run: npm test
+
+      - name: Build application
+        run: |
+          npm run build
+          echo "BUILD_VERSION=$(node -p 'require("./package.json").version')-$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+
+      # ----------------------------------
+      # 3. ARTIFACT PREPARATION
+      # ----------------------------------
+      - name: Create deployment package
+        run: |
+          mkdir -p deploy-package
+          cp -r build node_modules package.json package-lock.json appspec.yml scripts deploy-package/
+          cd deploy-package && zip -r ../app-$BUILD_VERSION.zip .
+          echo "DEPLOYMENT_PACKAGE=app-$BUILD_VERSION.zip" >> $GITHUB_ENV
+
+      - name: Verify package contents
+        run: |
+          unzip -l app-$BUILD_VERSION.zip
+
+      # ----------------------------------
+      # 4. AWS DEPLOYMENT
+      # ----------------------------------
+      - name: Configure AWS Credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: arn:aws:iam::120569639058:role/github-actions-role
           aws-region: ap-south-1
 
-      # 3. Install dependencies (Node.js example)
-      - name: Install Dependencies
-        run: npm install
-
-      # 4. Build the application
-      - name: Build
-        run: npm run build
-
-      # 5. Create deployment package (exclude unnecessary files)
-      - name: Create ZIP Artifact
-        run: |
-          zip -r app.zip . -x "node_modules/*" ".git/*" ".github/*" "*.md"
-          echo "DEPLOYMENT_VERSION=$(date +%Y%m%d%H%M%S)" >> $GITHUB_ENV
-
-      # 6. Upload to S3
       - name: Upload to S3
         run: |
-          aws s3 cp app.zip s3://java-space/build/app-$DEPLOYMENT_VERSION.zip
+          aws s3 cp app-$BUILD_VERSION.zip s3://java-space/build/$DEPLOYMENT_PACKAGE
 
-      # 7. Trigger CodeDeploy
-      - name: Deploy to EC2 via CodeDeploy
+      - name: Trigger CodeDeploy
         run: |
           aws deploy create-deployment \
             --application-name CICD \
             --deployment-group-name DEV-CICD \
-            --s3-location bucket=java-space,key=build/app-$DEPLOYMENT_VERSION.zip,bundleType=zip
+            --s3-location bucket=java-space,key=build/$DEPLOYMENT_PACKAGE,bundleType=zip \
+            --description "Deploying version $BUILD_VERSION"
