@@ -1,79 +1,74 @@
-name: Build, Package & Deploy
+name: Build & Deploy to CI-ASG
 
 on:
   push:
     branches: [ "master" ]
+  workflow_dispatch:  # Enable manual triggers
 
-permissions:
-  id-token: write
-  contents: read
+env:
+  AWS_REGION: ap-south-1
+  S3_BUCKET: java-space
+  CODE_DEPLOY_APP: CICD
+  DEPLOYMENT_GROUP: DEV-CICD
 
 jobs:
-  build-deploy:
+  deploy:
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
 
     steps:
-      # ----------------------------------
-      # 1. SETUP & INSTALLATION
-      # ----------------------------------
-      - name: Checkout code
-        uses: actions/checkout@v4
+      # 1. Checkout code
+      - uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      # 2. Setup Node.js (match your runtime)
+      - uses: actions/setup-node@v4
         with:
           node-version: '20.x'
           cache: 'npm'
 
-      # ----------------------------------
-      # 2. BUILD PROCESS
-      # ----------------------------------
+      # 3. Install & Build
       - name: Install dependencies
-        run: |
-          npm ci --production
-          npm cache clean --force
-        env:
-          CI: true
+        run: npm ci --omit=dev
 
       - name: Run tests
         run: npm test
 
-      - name: Build application
-        run: |
-          npm run build
-          echo "BUILD_VERSION=$(node -p 'require("./package.json").version')-$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+      - name: Build production
+        run: npm run build
 
-      # ----------------------------------
-      # 3. ARTIFACT PREPARATION
-      # ----------------------------------
-      - name: Create deployment package
+      # 4. Prepare deployment package
+      - name: Create deployment bundle
         run: |
-          mkdir -p deploy-package
-          cp -r build node_modules package.json package-lock.json appspec.yml scripts deploy-package/
-          cd deploy-package && zip -r ../app-$BUILD_VERSION.zip .
-          echo "DEPLOYMENT_PACKAGE=app-$BUILD_VERSION.zip" >> $GITHUB_ENV
+          # Include only essential files
+          mkdir -p dist
+          cp -r build package.json package-lock.json appspec.yml scripts dist/
+          
+          # Generate unique version ID
+          TIMESTAMP=$(date +%Y%m%d%H%M%S)
+          GIT_SHA=$(git rev-parse --short HEAD)
+          ZIP_NAME="deploy-${TIMESTAMP}-${GIT_SHA}.zip"
+          
+          cd dist && zip -r ../${ZIP_NAME} .
+          echo "ZIP_NAME=${ZIP_NAME}" >> $GITHUB_ENV
 
-      - name: Verify package contents
-        run: |
-          unzip -l app-$BUILD_VERSION.zip
-
-      # ----------------------------------
-      # 4. AWS DEPLOYMENT
-      # ----------------------------------
-      - name: Configure AWS Credentials (OIDC)
-        uses: aws-actions/configure-aws-credentials@v4
+      # 5. Configure AWS credentials
+      - uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: arn:aws:iam::120569639058:role/github-actions-role
-          aws-region: ap-south-1
+          aws-region: ${{ env.AWS_REGION }}
 
-      - name: Upload to S3
+      # 6. Upload to S3
+      - name: Upload deployment package
         run: |
-          aws s3 cp app-$BUILD_VERSION.zip s3://java-space/build/$DEPLOYMENT_PACKAGE
+          aws s3 cp ${ZIP_NAME} s3://${{ env.S3_BUCKET }}/build/${ZIP_NAME}
 
-      - name: Trigger CodeDeploy
+      # 7. Trigger CodeDeploy (matches your HalfAtATime config)
+      - name: Deploy to CI-ASG
         run: |
           aws deploy create-deployment \
-            --application-name CICD \
-            --deployment-group-name DEV-CICD \
-            --s3-location bucket=java-space,key=build/$DEPLOYMENT_PACKAGE,bundleType=zip \
-            --description "Deploying version $BUILD_VERSION"
+            --application-name ${{ env.CODE_DEPLOY_APP }} \
+            --deployment-group-name ${{ env.DEPLOYMENT_GROUP }} \
+            --s3-location bucket=${{ env.S3_BUCKET }},key=build/${ZIP_NAME},bundleType=zip \
+            --description "Deploying ${ZIP_NAME} to CI-ASG"
