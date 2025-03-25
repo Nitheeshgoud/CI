@@ -2,13 +2,21 @@ version: 0.0
 os: linux
 files:
   - source: /
-    destination: /home/ubuntu/app
+    destination: /opt/my-app
 hooks:
   BeforeInstall:
-    - location: scripts/clean_old_files.sh
+    - location: scripts/before_install.sh
+      timeout: 300
+      runas: root
+  AfterInstall:
+    - location: scripts/after_install.sh
+      timeout: 600
+      runas: ubuntu
+  ApplicationStart:
+    - location: scripts/start_server.sh
       timeout: 300
       runas: ubuntu
-  AfterInstall:
-    - location: scripts/install_dependencies.sh
+  ValidateService:
+    - location: scripts/validate_service.sh
       timeout: 300
       runas: ubuntu
