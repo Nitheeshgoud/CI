@@ -1,7 +1,12 @@
 {
+  "name": "my-node-app",
+  "version": "1.0.0",
   "scripts": {
     "test": "echo \"No tests configured\" && exit 0",
     "start": "node server.js",
-    "build": "your-build-command"
+    "build": "echo \"No build step needed\""
+  },
+  "dependencies": {
+    // Add your actual dependencies here
   }
 }
