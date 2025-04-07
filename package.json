@@ -6,7 +6,5 @@
     "start": "node server.js",
     "build": "echo \"No build step needed\""
   },
-  "dependencies": {
-    // Add your actual dependencies here
-  }
+  "dependencies": {}
 }
