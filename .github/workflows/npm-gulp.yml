@@ -13,6 +13,10 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
+    permissions:
+      id-token: write
+      contents: read
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -48,7 +52,7 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: arn:aws:iam::<YOUR_ACCOUNT_ID>:role/github-actions-role  # Replace this with your IAM Role ARN
+          role-to-assume: arn:aws:iam::<YOUR_ACCOUNT_ID>:role/github-actions-role  # Replace with your actual role ARN
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Upload ZIP to S3 (for CodePipeline)
