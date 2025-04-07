@@ -34,21 +34,21 @@ jobs:
             echo "No tests defined"
           fi
 
-      - name: Build project
-        run: npm run build
+      - name: Build project (no-op)
+        run: echo "No build step needed"
 
-      - name: Create ZIP of build
+      - name: Create ZIP of source code
         run: |
           TIMESTAMP=$(date +%Y%m%d%H%M%S)
           GIT_SHA=$(git rev-parse --short HEAD)
           ZIP_NAME="app-${TIMESTAMP}-${GIT_SHA}.zip"
-          zip -r $ZIP_NAME build/
+          zip -r $ZIP_NAME . -x "*.git*" "node_modules/*" "*.github*" "README.md"
           echo "ZIP_NAME=$ZIP_NAME" >> $GITHUB_ENV
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: arn:aws:iam::<YOUR_ACCOUNT_ID>:role/github-actions-role  # Replace with your IAM Role ARN
+          role-to-assume: arn:aws:iam::<YOUR_ACCOUNT_ID>:role/github-actions-role  # Replace this with your IAM Role ARN
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Upload ZIP to S3 (for CodePipeline)
